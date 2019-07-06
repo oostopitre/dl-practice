@@ -1,0 +1,20 @@
+# folders to ignore
+env/
+data/
+out/
+tmp/
+.idea/
+.vscode/
+.cache
+
+# filetype to ignore
+*.pyc
+*.egg-info/
+.DS_store
+.DS_Store
+
+# specific files to ignore
+sftp-config.json
+
+# filepatterns to ignore
+tmp_*
