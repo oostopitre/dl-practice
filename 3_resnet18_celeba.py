@@ -1,11 +1,19 @@
+""""Resnet18 on CelebA dataset for gender classification.
+
+TODO:
+    - [ ] Setup data
+    - [ ] CPU/GPU
+    - [ ] DataParallel
+"""
+
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from torch.utils.data import DataLoader
-from torchvision.utils import make_grid
 from torchvision import datasets, transforms
+from torchvision.utils import make_grid
 
 DEBUG = False
 
@@ -22,16 +30,16 @@ class BasicBlock(nn.Module):
             out_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False
         )
         self.bn2 = nn.BatchNorm2d(out_channels)
-        self.stride = stride
         self.conv_downsample = nn.Conv2d(
             in_channels, out_channels, kernel_size=1, stride=stride, padding=0, bias=False
         )
         self.bn_downsample = nn.BatchNorm2d(out_channels)
+        self.stride = stride
 
     def forward(self, x):
         residual = x
         x = self.relu(self.bn1(self.conv1(x)))
-        x = self.bn1(self.conv2(x))
+        x = self.bn2(self.conv2(x))
         if self.stride == 2:
             residual = self.bn_downsample(self.conv_downsample(residual))
         x += residual
@@ -57,16 +65,11 @@ class Resnet18(nn.Module):
         self.fc = nn.Linear(512, num_classes)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.maxpool1(x)
-        x = self.conv2_1(x)
-        x = self.conv2_2(x)
-        x = self.conv3_1(x)
-        x = self.conv3_2(x)
-        x = self.conv4_1(x)
-        x = self.conv4_2(x)
-        x = self.conv5_1(x)
-        x = self.conv5_2(x)
+        x = self.maxpool1(self.conv1(x))
+        x = self.conv2_2(self.conv2_1(x))
+        x = self.conv3_2(self.conv3_1(x))
+        x = self.conv4_2(self.conv4_1(x))
+        x = self.conv5_2(self.conv5_1(x))
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         logits = self.fc(x)
@@ -75,50 +78,35 @@ class Resnet18(nn.Module):
 
 
 def main():
-    tfms = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor()])
+    tfms = transforms.Compose([transforms.Resize(size=224), transforms.ToTensor()])
+    train_dataset = datasets.CelebA(
+        root='data/', split='train', target_type='attr', transform=tfms, download=True
+    )
+    valid_dataset = datasets.CelebA(
+        root='data/', split='valid', target_type='attr', transform=tfms, download=True
+    )
 
-    train_dataset = datasets.CIFAR10(root='data/', train=True, transform=tfms)
-    test_dataset = datasets.CIFAR10(root='data/', train=True, transform=tfms)
+    train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    valid_dataloader = DataLoader(valid_dataset, batch_size=4, shuffle=False)
 
-    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=4, shuffle=True)
-
-    for batch_idx, (images, labels) in enumerate(train_loader):
-        print(f'Train Image Size: {images.shape}')
-        print(f'Label Size: {labels.shape}')
-
-        if DEBUG:
-            plt.imshow(make_grid(images).numpy().transpose(1, 2, 0))
+    # visualize a batch
+    if DEBUG:
+        for batch_idx, (images, labels) in enumerate(train_dataloader):
+            if batch_idx > 0:
+                break
+            img = make_grid(images)
+            img = img.numpy().transpose(1, 2, 0)
+            plt.imshow(img)
+            print(labels)
             plt.show()
-        if batch_idx >= 0:
-            break
 
-    model = Resnet18(num_classes=10)
+    # Training loop
+    model = Resnet18(num_classes=2)
     optimizer = torch.optim.Adam(model.parameters())
 
-    # Training Loop
-    for epoch in range(3):
 
-        # Compute on Train data
-        model.train()
-        for batch_idx, (images, labels) in enumerate(train_loader):
-            logits, probs = model(images)
-            loss = F.cross_entropy(logits, labels)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            print(f'Epoch: {epoch+1} | Batch: {batch_idx} | Loss: {loss:.2f}')
-            if batch_idx >= 2:
-                break
 
-        # Compute loss on Test data
-        model.eval()
-        for images, labels in test_loader:
-            logits, probs = model(images)
-            test_loss = F.cross_entropy(logits, labels)
-            if batch_idx >= 2:
-                print(f'Test loss: {test_loss:.2f}')
-                break
+    import ipdb; ipdb.set_trace()  # noqa  # yapf: disable
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 # folders to ignore
 env/
 data/
+assets/
 out/
 tmp/
 .idea/

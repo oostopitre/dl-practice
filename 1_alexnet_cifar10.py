@@ -1,4 +1,10 @@
 """Alexnet Implementation on CIFAR10.
+
+NOTE:
+    - inout size = 224
+    - 3 filters sizes: 11, 5, 3 with different padding and strides
+    - 3 dense layers
+
 TODO:
   - [x] Use CIFAR10 from Torchvision
   - [x] Use dataloaders from Torch

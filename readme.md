@@ -1,3 +1,8 @@
+# Create a working Env
+
+## PyTorch Env
+
+```bash
 conda create -n dl-pytorch python=3.6
 source activate dl-pytorch
 
@@ -10,3 +15,4 @@ conda install matplotlib
 
 # pip install flake8
 # pip install yapf
+```
